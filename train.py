@@ -118,6 +118,7 @@ def data_process(data_file_path, pkl_file_path, from_pkl=False, save_pkl=False):
                     x_train.append(index_train)
                     index_train = index_train + 1
                 #data in year 2016 is set to be testing data
+                #elif item_time_point[5:7] == '03': #for testing in 2016 march
                 else:
                     time_point_test.append(item_time_point)
                     item_Q_factor = float(item_Q_factor)
@@ -139,20 +140,14 @@ def make_train_data(Q_factor_train, sample_step):
 
 def model_training(input_data, output_data, n_steps, n_features, channel, segment):
 
-    rnn_size = 64  #32 is good for 96 entry prediction history
-    dense_size = 32
-    hidden_size = 256
-    batch_size = 64
-    generative_layers = 1
-    dropout_rate = 0.2  #
-    reduce_patience = 7
-    stop_patience = 8  # early stop
-    visualize_num = 20
+    rnn_size = 32  #32 is good for 96 entry prediction history
+    reduce_patience = 8
+    stop_patience = 15  # early stop
     epochs = 200
 
     #LSTM prediction model
     model = Sequential()
-    model.add(layers.Bidirectional(layers.LSTM(rnn_size, activation='tanh'), input_shape=(n_steps, n_features)))
+    model.add(layers.Bidirectional(layers.LSTM(rnn_size, activation='relu'),input_shape=(n_steps, n_features)))
     #model.add(layers.GlobalMaxPool1D())
     #model.add(layers.LSTM(rnn_size, activation='relu'))
     #model.add(layers.Dense(dense_size))
@@ -194,19 +189,20 @@ if __name__ == '__main__':
     logfile = None
     stdout_bak = sys.stdout
 
-    for channel in range(5,4000):
-        for segment in range(1,115):
-            _DATA_FILE_NAME = 'channel_' + str(channel) + '_segment_' + str(segment) + '.txt'
-            DATA_FILE_PATH = os.path.join(_DATA_DIR, _DATA_FILE_NAME)
-            PKL_FILE_PATH = DATA_FILE_PATH.replace('.txt', '.pkl')
+    channel = 431
+    segment = 13
 
-            x_train, time_point_train, Q_factor_train, x_test, time_point_test, Q_factor_test = data_process(DATA_FILE_PATH, PKL_FILE_PATH, from_pkl=True, save_pkl=False)
+    _DATA_FILE_NAME = 'channel_' + str(channel) + '_segment_' + str(segment) + '.txt'
+    DATA_FILE_PATH = os.path.join(_DATA_DIR, _DATA_FILE_NAME)
+    PKL_FILE_PATH = DATA_FILE_PATH.replace('.txt', '.pkl')
 
-            sample_step = 32
-            sample_input, sample_output = make_train_data(Q_factor_train, sample_step)
+    x_train, time_point_train, Q_factor_train, x_test, time_point_test, Q_factor_test = data_process(DATA_FILE_PATH, PKL_FILE_PATH, from_pkl=True, save_pkl=False)
 
-            sample_feature = 1
-            sample_input = sample_input.reshape((sample_input.shape[0], sample_input.shape[1], sample_feature))
-            print(sample_input.shape)
+    sample_step = 96
+    sample_input, sample_output = make_train_data(Q_factor_train, sample_step)
 
-            model_training(sample_input, sample_output, sample_step, sample_feature, channel, segment)
+    sample_feature = 1
+    sample_input = sample_input.reshape((sample_input.shape[0], sample_input.shape[1], sample_feature))
+    print(sample_input.shape)
+
+    model_training(sample_input, sample_output, sample_step, sample_feature, channel, segment)

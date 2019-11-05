@@ -29,11 +29,10 @@ def make_test_data(Q_factor_test, sample_step, test_time_scale):
 
 
 if __name__ == '__main__':
-    print('\n===== testing LSTM models in year 2016 =====')
+    print('\n===== testing LSTM models for a longer time in year 2016 =====')
 
     channel = 431
     segment = 13
-
     _DATA_FILE_NAME = 'channel_' + str(channel) + '_segment_' + str(segment) + '.txt'
     DATA_FILE_PATH = os.path.join(_DATA_DIR, _DATA_FILE_NAME)
     PKL_FILE_PATH = DATA_FILE_PATH.replace('.txt', '.pkl')
@@ -58,11 +57,24 @@ if __name__ == '__main__':
     sample_feature = 1
     sample_input = sample_input.reshape((sample_input.shape[0], sample_input.shape[1], sample_feature))
 
-    for i in range(0, sample_input.shape[0]):
-        predict_input = sample_input[i].reshape((1, sample_input.shape[1], sample_feature))
+    predict_input = sample_input[0].reshape((1, sample_input.shape[1], sample_feature))
+    current_input = sample_input[0]
+    predict_last = model.predict(predict_input)
+    predict = predict_last[0][0]
+    loss = predict - sample_output[0]
+
+    predict_y.append(predict)
+    loss_y.append(loss)
+
+    for i in range(1, sample_input.shape[0]):
+        revised_input = np.delete(current_input, 0, axis=0)
+        revised_input = np.append(revised_input, predict_last)
+        predict_input = revised_input.reshape((1, sample_input.shape[1], sample_feature))
         predict = model.predict(predict_input)
         predict = predict[0][0]
+        predict_last = predict
         loss = predict - sample_output[i]
+        current_input = revised_input
 
         predict_y.append(predict)
         loss_y.append(loss)
@@ -80,11 +92,10 @@ if __name__ == '__main__':
     ax = plt.gca()
     ax.xaxis.set_major_locator(x_major_locator)
     plt.xlim(0, test_time_scale)
-    # plt.ylim(14.7, 14.86)
     plt.xlabel("sample data at 15-minutes interval", fontsize=12)
     plt.ylabel("Q-factor", fontsize=12)
     plt.tight_layout()
-    plt.savefig("prediction_ch_" + str(channel) + "_seg_" + str(segment) + ".pdf", dpi=175)
+    plt.savefig("long_prediction_ch_" + str(channel) + "_seg_" + str(segment) + ".pdf", dpi=175)
 
     # error visualization
     plt.figure()
@@ -92,7 +103,7 @@ if __name__ == '__main__':
     plt.xlabel("time", fontsize=12)
     plt.ylabel("Prediction error (predict value minus ground truth)", fontsize=12)
     plt.tight_layout()
-    plt.savefig("error_ch_" + str(channel) + "_seg_" + str(segment) + ".pdf", dpi=175)
+    plt.savefig("long_error_ch_" + str(channel) + "_seg_" + str(segment) + ".pdf", dpi=175)
 
     # cdf of the error
     plt.figure()
@@ -108,9 +119,9 @@ if __name__ == '__main__':
     plt.plot(x_cdf, y_cdf, c='blue')
     plt.xlabel("prediction error (predict value minus ground truth)", fontsize=12)
     plt.ylabel("Cumulative distribution function", fontsize=12)
-    plt.xlim(-0.1, 0.1)
     ax = plt.gca()
     ax.axvline(x=0.01, linestyle='--', color='grey')
     ax.axvline(x=-0.01, linestyle='--', color='grey')
+    plt.xlim(-0.1, 0.1)
     plt.tight_layout()
-    plt.savefig("CDF_error_ch_" + str(channel) + "_seg_" + str(segment) + ".pdf", dpi=175)
+    plt.savefig("long_CDF_error_ch_" + str(channel) + "_seg_" + str(segment) + ".pdf", dpi=175)
